@@ -1,0 +1,6 @@
+Identifier = "TargetCoords"
+Name = "TargetCoords"
+Email = "x"
+RunOnStartup = {
+	"TargetCoords.lua"
+	}
