@@ -1,6 +1,6 @@
 -- ============================================================================
 -- TargetCoords.lua
--- Version: 2.1.0
+-- Version: 2.1.1
 -- Purpose: Display the current target's world coordinates in a movable,
 --          fixed-size in-game frame.
 -- Notes  : Data updates are separated from display updates. Layout is fixed.
@@ -64,6 +64,7 @@ local STATE = {
 
 local UIREF = {
     frame = nil,
+    background = nil,
     title = nil,
     labelX = nil,
     labelY = nil,
@@ -82,51 +83,6 @@ local function CreateTextFrame(name, parent, fontSize, r, g, b, a, text)
     return textFrame
 end
 
-local function BuildUI()
-    UIREF.frame = UI.CreateFrame("Frame", "TargetCoordsFrame", context)
-    UIREF.frame:SetWidth(CONFIG.FRAME_WIDTH)
-    UIREF.frame:SetHeight(CONFIG.FRAME_HEIGHT)
-    UIREF.frame:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
-    UIREF.frame:SetBackgroundColor(0, 0, 0, CONFIG.FRAME_ALPHA)
-
-    UIREF.title = CreateTextFrame(
-        "TargetCoordsTitle",
-        UIREF.frame,
-        CONFIG.TITLE_FONT_SIZE,
-        0.9, 0.9, 0.9, 1,
-        CONFIG.TITLE_TEXT
-    )
-
-    UIREF.labelX = CreateTextFrame(
-        "TargetCoordsLabelX",
-        UIREF.frame,
-        CONFIG.VALUE_FONT_SIZE,
-        1, 1, 0, 1,
-        STATE.display.xText
-    )
-
-    UIREF.labelY = CreateTextFrame(
-        "TargetCoordsLabelY",
-        UIREF.frame,
-        CONFIG.VALUE_FONT_SIZE,
-        1, 1, 0, 1,
-        STATE.display.yText
-    )
-
-    UIREF.labelZ = CreateTextFrame(
-        "TargetCoordsLabelZ",
-        UIREF.frame,
-        CONFIG.VALUE_FONT_SIZE,
-        1, 1, 0, 1,
-        STATE.display.zText
-    )
-
-    UIREF.title:SetPoint("TOPLEFT", UIREF.frame, "TOPLEFT", CONFIG.TITLE_X, CONFIG.TITLE_Y)
-    UIREF.labelX:SetPoint("TOPLEFT", UIREF.frame, "TOPLEFT", CONFIG.ROW_X, CONFIG.ROW_Y)
-    UIREF.labelY:SetPoint("TOPLEFT", UIREF.frame, "TOPLEFT", CONFIG.ROW_X, CONFIG.ROW_Y + CONFIG.ROW_GAP)
-    UIREF.labelZ:SetPoint("TOPLEFT", UIREF.frame, "TOPLEFT", CONFIG.ROW_X, CONFIG.ROW_Y + (CONFIG.ROW_GAP * 2))
-end
-
 local function SetTextIfChanged(frame, stateKey, newText)
     if STATE.display[stateKey] == newText then
         return
@@ -134,6 +90,69 @@ local function SetTextIfChanged(frame, stateKey, newText)
 
     STATE.display[stateKey] = newText
     frame:SetText(newText)
+end
+
+local function EnsureTopLeftAnchor()
+    if STATE.drag.anchoredTopLeft then
+        return
+    end
+
+    local left = UIREF.frame:GetLeft() or 0
+    local top = UIREF.frame:GetTop() or 0
+
+    UIREF.frame:ClearAll()
+    UIREF.frame:SetPoint("TOPLEFT", UIParent, "TOPLEFT", left, top)
+
+    STATE.drag.anchoredTopLeft = true
+end
+
+local function BuildUI()
+    UIREF.frame = UI.CreateFrame("Frame", "TargetCoordsFrame", context)
+    UIREF.frame:SetWidth(CONFIG.FRAME_WIDTH)
+    UIREF.frame:SetHeight(CONFIG.FRAME_HEIGHT)
+    UIREF.frame:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
+
+    UIREF.background = UI.CreateFrame("Frame", "TargetCoordsBackground", UIREF.frame)
+    UIREF.background:SetPoint("TOPLEFT", UIREF.frame, "TOPLEFT", 0, 0)
+    UIREF.background:SetPoint("BOTTOMRIGHT", UIREF.frame, "BOTTOMRIGHT", 0, 0)
+    UIREF.background:SetBackgroundColor(0, 0, 0, CONFIG.FRAME_ALPHA)
+
+    UIREF.title = CreateTextFrame(
+        "TargetCoordsTitle",
+        UIREF.background,
+        CONFIG.TITLE_FONT_SIZE,
+        0.9, 0.9, 0.9, 1,
+        CONFIG.TITLE_TEXT
+    )
+
+    UIREF.labelX = CreateTextFrame(
+        "TargetCoordsLabelX",
+        UIREF.background,
+        CONFIG.VALUE_FONT_SIZE,
+        1, 1, 0, 1,
+        STATE.display.xText
+    )
+
+    UIREF.labelY = CreateTextFrame(
+        "TargetCoordsLabelY",
+        UIREF.background,
+        CONFIG.VALUE_FONT_SIZE,
+        1, 1, 0, 1,
+        STATE.display.yText
+    )
+
+    UIREF.labelZ = CreateTextFrame(
+        "TargetCoordsLabelZ",
+        UIREF.background,
+        CONFIG.VALUE_FONT_SIZE,
+        1, 1, 0, 1,
+        STATE.display.zText
+    )
+
+    UIREF.title:SetPoint("TOPLEFT", UIREF.background, "TOPLEFT", CONFIG.TITLE_X, CONFIG.TITLE_Y)
+    UIREF.labelX:SetPoint("TOPLEFT", UIREF.background, "TOPLEFT", CONFIG.ROW_X, CONFIG.ROW_Y)
+    UIREF.labelY:SetPoint("TOPLEFT", UIREF.background, "TOPLEFT", CONFIG.ROW_X, CONFIG.ROW_Y + CONFIG.ROW_GAP)
+    UIREF.labelZ:SetPoint("TOPLEFT", UIREF.background, "TOPLEFT", CONFIG.ROW_X, CONFIG.ROW_Y + (CONFIG.ROW_GAP * 2))
 end
 
 local function RefreshDisplay()
@@ -154,20 +173,6 @@ local function RefreshDisplay()
     SetTextIfChanged(UIREF.labelX, "xText", xText)
     SetTextIfChanged(UIREF.labelY, "yText", yText)
     SetTextIfChanged(UIREF.labelZ, "zText", zText)
-end
-
-local function EnsureTopLeftAnchor()
-    if STATE.drag.anchoredTopLeft then
-        return
-    end
-
-    local left = UIREF.frame:GetLeft() or 0
-    local top = UIREF.frame:GetTop() or 0
-
-    UIREF.frame:ClearAll()
-    UIREF.frame:SetPoint("TOPLEFT", UIParent, "TOPLEFT", left, top)
-
-    STATE.drag.anchoredTopLeft = true
 end
 
 -- ----------------------------------------------------------------------------
@@ -298,15 +303,24 @@ local function OnMouseMove()
     )
 end
 
+local function AttachDragHandlers(target, prefix)
+    target:EventAttach(Event.UI.Input.Mouse.Left.Down, OnLeftDown, prefix .. "LeftDown")
+    target:EventAttach(Event.UI.Input.Mouse.Left.Up, OnLeftUp, prefix .. "LeftUp")
+    target:EventAttach(Event.UI.Input.Mouse.Cursor.Move, OnMouseMove, prefix .. "MouseMove")
+end
+
 -- ----------------------------------------------------------------------------
 -- STARTUP
 -- ----------------------------------------------------------------------------
 
 BuildUI()
 
-UIREF.frame:EventAttach(Event.UI.Input.Mouse.Left.Down, OnLeftDown, "TargetCoordsLeftDown")
-UIREF.frame:EventAttach(Event.UI.Input.Mouse.Left.Up, OnLeftUp, "TargetCoordsLeftUp")
-UIREF.frame:EventAttach(Event.UI.Input.Mouse.Cursor.Move, OnMouseMove, "TargetCoordsMouseMove")
+AttachDragHandlers(UIREF.frame, "TargetCoordsFrame")
+AttachDragHandlers(UIREF.background, "TargetCoordsBackground")
+AttachDragHandlers(UIREF.title, "TargetCoordsTitle")
+AttachDragHandlers(UIREF.labelX, "TargetCoordsLabelX")
+AttachDragHandlers(UIREF.labelY, "TargetCoordsLabelY")
+AttachDragHandlers(UIREF.labelZ, "TargetCoordsLabelZ")
 
 -- ----------------------------------------------------------------------------
 -- EVENT REGISTRATION
