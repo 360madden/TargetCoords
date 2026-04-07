@@ -3,4 +3,4 @@ Name = "TargetCoords"
 Email = "x"
 RunOnStartup = {
 	"TargetCoords.lua"
-	}
+}
